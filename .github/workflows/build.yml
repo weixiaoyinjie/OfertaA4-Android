@@ -31,10 +31,23 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Install Android SDK
+      - name: Check or Install Android SDK 35
+        shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "Android SDK: $SDK"
+          if [ ! -d "$SDK/platforms/android-35" ] || [ ! -d "$SDK/build-tools/35.0.0" ]; then
+            SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+            if [ ! -x "$SDKMANAGER" ]; then
+              echo "sdkmanager not found: $SDKMANAGER"
+              exit 1
+            fi
+            yes | "$SDKMANAGER" --licenses >/dev/null || true
+            "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+          fi
+          test -d "$SDK/platforms/android-35"
+          test -d "$SDK/build-tools/35.0.0"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
 
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug
